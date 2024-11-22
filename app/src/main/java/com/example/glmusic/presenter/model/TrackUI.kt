@@ -4,6 +4,7 @@ data class TrackUI(
     val id: String,
     val name: String,
     val releaseDate: DisplayableDate,
+    val image: String,
     val audio: String,
     val audioDuration: String
 )

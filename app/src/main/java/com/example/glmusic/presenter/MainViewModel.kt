@@ -101,5 +101,7 @@ data class TrackState(
     val isDataLoading: Boolean = false,
     val tracks: List<TrackUI> = emptyList(),
     val selectedTrack: TrackUI? = null,
-    val lastPosition: Long = 0L
+    val lastPosition: Long = 0L,
+    val isPlaying: Boolean = false,
+    val skipTime: Long = 0L
 )

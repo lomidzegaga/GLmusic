@@ -14,6 +14,7 @@ fun GetTracksResponse.toTrackUI(): List<TrackUI> {
                 id = track.id,
                 name = track.name,
                 releaseDate = track.releaseDate.toDisplayableDate(),
+                image = track.image,
                 audio = track.audio,
                 audioDuration = track.duration.toFormattedDuration()
             )

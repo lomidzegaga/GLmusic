@@ -99,6 +99,9 @@ dependencies {
     // Media3
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+
+    // Image Loading (Coil)
+    implementation(libs.coil)
 }
 
 kapt {

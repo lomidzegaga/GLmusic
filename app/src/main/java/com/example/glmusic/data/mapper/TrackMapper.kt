@@ -30,6 +30,8 @@ fun String.toDisplayableDate(): DisplayableDate {
             val date = java.time.LocalDate.parse(this, inputFormatter)
             date.format(outputFormatter)
         } catch (e: Exception) {
+            e.printStackTrace()
+
             return DisplayableDate(
                 value = "ERROR",
                 formatted = "ERROR"
@@ -47,5 +49,5 @@ fun String.toFormattedDuration(): String {
     val durationInSeconds = this.toIntOrNull() ?: return "Invalid"
     val minutes = durationInSeconds / 60
     val seconds = durationInSeconds % 60
-    return String.format(Locale.US, "%02d:%02d", minutes, seconds)
+    return String.format(Locale.US, "%2d:%02d", minutes, seconds)
 }

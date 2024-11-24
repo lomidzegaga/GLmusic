@@ -1,19 +1,18 @@
 package com.example.glmusic.presenter
 
-import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import com.example.glmusic.data.mapper.toTrackUI
 import com.example.glmusic.domain.repository.TrackRepository
 import com.example.glmusic.presenter.model.TrackUI
+import com.example.glmusic.presenter.screens.OnPlayerControlsClick
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,11 +26,11 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val repository: TrackRepository,
     private val savedStateHandle: SavedStateHandle,
-    private val player: Player
+    private val playerController: PlayerController
 ) : ViewModel() {
 
     init {
-        player.prepare()
+        playerController.prepare()
     }
 
     private val _state = MutableStateFlow(TrackState())
@@ -42,7 +41,9 @@ class MainViewModel @Inject constructor(
             initialValue = TrackState()
         )
 
-    private var lastTrack by mutableStateOf(TrackState().selectedTrack)
+    var lastTrack: TrackUI? = null
+    private var trackLastPosition by mutableLongStateOf(0L)
+    var isMusicPlaying by mutableStateOf(false)
 
     private fun getTracks() {
         _state.update { it.copy(isDataLoading = true) }
@@ -62,36 +63,51 @@ class MainViewModel @Inject constructor(
 
     fun selectTrack(track: TrackUI) {
         _state.update { it.copy(selectedTrack = track) }
+        lastTrack = track
+    }
+
+    fun onPlayerControlsClick(userInput: OnPlayerControlsClick) {
+        when (userInput) {
+            OnPlayerControlsClick.Next -> playerController.playNext()
+            OnPlayerControlsClick.PlayPause -> togglePlayPause()
+            OnPlayerControlsClick.Previous -> playerController.playPrevious()
+        }
+    }
+
+    private fun togglePlayPause() {
+        isMusicPlaying = isMusicPlaying.not()
+
+        if (isMusicPlaying) {
+            playMusic()
+        } else {
+            pauseMusic()
+        }
     }
 
     fun playMusic() {
-        val isSameTrackPlaying = lastTrack == _state.value.selectedTrack
+        _state.value.selectedTrack?.let { track ->
+            val isSameTrack = lastTrack == track
 
-        if (isSameTrackPlaying) {
-            val lastPosition = _state.value.lastPosition
-            player.seekTo(lastPosition)
-        } else {
-            _state.update { it.copy(lastPosition = 0L) }
-            player.setMediaItem(
-                MediaItem.fromUri(
-                    _state.value.selectedTrack?.audio?.toUri() ?: Uri.EMPTY
-                )
-            )
+            if (isSameTrack) {
+                playerController.seekTo(trackLastPosition)
+            } else {
+                playerController.play(track.audio.toUri(), trackLastPosition)
+            }
         }
-
-        player.play()
     }
 
     fun pauseMusic() {
-        val currentTrackPosition = player.currentPosition
-        _state.update { it.copy(lastPosition = currentTrackPosition) }
-        lastTrack = _state.value.selectedTrack
-        player.pause()
+        trackLastPosition = playerController.currentPosition
+        playerController.pause()
     }
+
+    private fun playNext() = playerController.playNext()
+    private fun playPrevious() = playerController.playPrevious()
+
 
     override fun onCleared() {
         super.onCleared()
-        player.release()
+        playerController.release()
     }
 }
 
@@ -100,8 +116,5 @@ class MainViewModel @Inject constructor(
 data class TrackState(
     val isDataLoading: Boolean = false,
     val tracks: List<TrackUI> = emptyList(),
-    val selectedTrack: TrackUI? = null,
-    val lastPosition: Long = 0L,
-    val isPlaying: Boolean = false,
-    val skipTime: Long = 0L
+    val selectedTrack: TrackUI? = null
 )
